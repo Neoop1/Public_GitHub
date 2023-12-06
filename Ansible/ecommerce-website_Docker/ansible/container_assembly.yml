@@ -1,0 +1,38 @@
+- name: create image dir
+  file:
+    path: /root/dockerfiles/{{item.path.split('/')[-1]}}
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: "Copy Dockerfile"
+  copy:
+    src: "{{item.path}}/Dockerfile"
+    dest: "/root/dockerfiles/{{item.path | basename}}/Dockerfile"
+    owner: root
+    group: root
+    mode: '0644'
+
+
+- name: build container image
+  docker_image:
+    name: "{{item.path | basename}}_container:v5.0"
+    build:
+      path: "/root/dockerfiles/{{item.path | basename}}/"
+    source: build
+    state: present
+
+- name: archive container image as a tarball
+  docker_image:
+    name: "{{item.path | basename }}_container:v5.0"
+    archive_path: "/root/files/dockerimage/{{item.path | basename }}_container:v5.0.tar"
+    source: pull
+    state: present
+
+#- name: fetch archive image
+#  fetch:
+#    src: "/root/{{item.path | basename}}_container:v5.0.tar"
+#    dest: "files/{{item.path | basename}}_container:v5.0.tar"
+#    flat: true
+

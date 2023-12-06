@@ -1,0 +1,10 @@
+all:
+ children:
+  docker:
+    hosts: 
+      build_host:
+        ansible_host: 192.168.55.101
+        ansible_private_key_file: /home/vagrant/.ssh/ssh_key
+      runner_host: 
+        ansible_host: 192.168.55.102
+        ansible_private_key_file: /home/vagrant/.ssh/ssh_key

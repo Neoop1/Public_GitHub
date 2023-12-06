@@ -1,0 +1,97 @@
+  
+  
+  
+  
+  
+  - name: 'cheack php'
+    ansible.builtin.fail:
+       msg:  "the php {{ php_version }} does not exist "
+    when: php_version > 8.0
+
+
+  - name: Adding Remi repo pgp keys
+    ansible.builtin.get_url:
+        validate_certs: no
+        url: https://rpms.remirepo.net/enterprise/7/RPM-GPG-KEY-remi
+        dest: /etc/pki/rpm-gpg/RPM-GPG-KEY-remi.el9
+
+  - name: Add remi repo 
+    ansible.builtin.yum_repository:
+        name: remi
+        description: Remi repo for Enterprise Linux 7
+        baseurl: https://rpms.remirepo.net/enterprise/7/php73/x86_64
+        enabled: yes
+        gpgcheck: yes
+        repo_gpgcheck: yes
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-remi.el9
+
+
+
+  - name: 'Install PhP'
+    ansible.builtin.yum:
+     enablerepo:
+     - remi
+     name: 
+          - php
+          - php-cli
+          - php-fpm
+
+     update_cache: yes
+     state: latest
+
+
+
+
+
+
+
+  - name: cheack if we are havinh nginx dir 
+    ansible.builtin.stat:
+     path: /etc/nginx/conf.d/
+    register: php_site_available_stats
+    
+
+
+  - name: 'copy php file to /var/www'
+    ansible.builtin.copy:
+     src: "files/php/ecommerce-website.com"
+     dest: "/usr/share/nginx/" 
+     owner: "vagrant" 
+     group: "vagrant"
+     mode: "0644"
+    when: php_site_available_stats.stat.exists
+
+    
+  - name: 'copy php config'
+    ansible.builtin.copy:
+     src: "files/www.conf"
+     dest: "/etc/php-fpm.d/www.conf"
+     owner: "vagrant"
+     group: "vagrant"
+     mode: "0644"
+
+  - name: 'copy ngnix config'
+    ansible.builtin.template:
+     src: "nginx.centos.conf.j2"
+     dest: "/etc/nginx/conf.d/ecommerce-website.conf"
+     owner: "vagrant"
+     group: "vagrant"
+     mode: "0644"
+    when: php_site_available_stats.stat.exists
+
+  - name: restart fpm
+    service:
+     name: php-fpm
+     state: reloaded
+
+
+
+
+    
+
+
+    
+
+    
+
+  

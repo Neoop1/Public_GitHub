@@ -1,0 +1,90 @@
+
+#- name: copy tarball to host
+#  copy:
+#    src: "dockerimage/{{item.path | basename}}"
+#    dest: "/root/{{item.path | basename}}"
+#    force: no 
+
+- name: load container from tarball
+  community.docker.docker_image_load:
+  #  name: "{{item.path | splitext | first}}"
+    path: "/root/files/dockerimage/{{item.path | basename}}"
+  #  state: present
+  #  source: load
+
+
+- name: load web container from tarball
+  community.docker.docker_image_load:
+     path: "/root/files/dockerimage/web_container:v5.0.tar"
+
+- name: load db container from tarball
+  community.docker.docker_image_load:
+     path: "/root/files/dockerimage/db_container:v5.0.tar"
+
+
+#- name: run container 
+#  docker_container:
+#    name: "{{(item.path | basename).split('_') | first}}_app"
+#    image: "{{item.path | basename | splitext | first }}"
+#    state: started 
+
+#- name: Stop MySqL container 
+#  docker_container:
+#    name: "MySQL_app"
+#    image: db_container:v4.0
+#    state: stopped     
+#
+#
+#- name: Start  MySqL container 
+#  docker_container:
+#    name: "MySqL_app"
+#    image: db_container:v4.0
+#    state: started     
+#    restart: yes
+#    ports:
+#     - "3306:3306"
+#    volumes:
+#         -  "/root/sqldb/:/var/lib/mysql"
+#
+
+#
+#- name: Stop NGINXWebServer container 
+#  docker_container:
+#    name: "NGINX_app"
+#    image: web_container:v3.0
+#    state: stopped     
+#
+#
+#- name: Start  NGINXWebServer container 
+#  docker_container:
+#    name: "NGINX_app"
+#    image: web_container:v4.0
+#    state: started     
+#    restart: yes
+#    ports:
+#     - "8088:80"
+#    volumes:
+#         -  "/root/Web/:/var/www/"
+
+#             
+-  name: Go to the folder and execute command
+   command: chdir=/root/files/dockercompose/ docker compose up -d
+
+
+   #register: docker_compose_out
+
+#- name: Make sure compose service is up
+#  community.docker.docker_compose:
+#    project_src: "/root/files/dockercompose/"
+#    files:
+#      - "docker_compose.yml"
+#    state: present
+
+
+-  name: Retrive Name of Docker Container
+   shell: "docker ps --format '{% raw %}{{ .Names }}{% endraw %}'"
+   register: container_name
+            
+
+
+

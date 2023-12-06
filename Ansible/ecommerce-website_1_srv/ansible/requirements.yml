@@ -1,0 +1,7 @@
+#ansible-galaxy install -r requirements.yml
+#ansible-galaxy install geerlingguy.mysql
+
+
+# Install a role from GitHub
+- name: community.mysql
+  src: https://github.com/ansible-collections/community.mysql

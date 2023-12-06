@@ -1,0 +1,128 @@
+---
+- name: "Install docker"
+  hosts: docker
+  become: true
+  vars: 
+    packages:
+    - python3
+    - python3-pip
+    - python3-setuptools
+    - libselinux-python3
+
+    pip_packages:
+    - six
+    - docker
+    - requests
+
+
+  tasks:
+  - name: "create yum repository for docker"
+    ansible.builtin.yum_repository:
+     name: docker-repo
+     description: "repo for docker"
+     baseurl: "https://download.docker.com/linux/centos/7/x86_64/stable/"
+     enabled: yes
+     gpgcheck: no
+    when: ansible_facts['os_family'] == 'RedHat'
+
+  - name: "install docker"
+    ansible.builtin.yum:
+      name: "docker-ce-18.09.1-3.el7.x86_64"
+      state: present
+
+  - name: Install python and pip
+    ansible.builtin.yum:
+      name: "{{ packages}}"
+      state: present
+      update_cache: true
+
+
+  - name: :Install docker SDK"
+    pip:
+     name: "{{pip_packages}}"
+    vars:
+      ansible_python_interpreter: /usr/bin/python3
+  
+  - name: " start docker service"
+    service:
+      name: "docker"
+      state: started
+
+- name: "build container"
+  hosts: build_host
+  gather_facts: no
+  become: true
+  tags: build
+  vars:
+   ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+    - name: "find Docker files"
+      ansible.builtin.find:
+        paths: ~/ansible/files/
+        recurse: yes
+        file_type: "directory"
+      delegate_to: 127.0.0.1
+      register: files
+      become: false
+
+    - name: delete old dir
+      file:
+        path: "/root/dockerfiles"
+        state: absent
+       
+    - name: create built dir
+      file:
+        path: "/root/dockerfiles"
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: "Copy files and build them"
+      include_tasks:  "container_assembly.yml"
+      loop: "{{files.files}}"
+
+- name: " Load container"
+  hosts: runner_host
+  gather_facts: no
+  tags: load
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+
+  tasks:
+  - name: "find Docker Image files"
+    find:
+      paths: "~/ansible/dockerfiles/dockerimage"
+      file_type: "file"
+    delegate_to: 127.0.0.1
+    register: files
+    become: false
+
+ # - name: Copy PHP HTTP files
+ #   ansible.builtin.copy:
+ #         src: ~/ansible/WEB/
+ #         dest: /root/Web/
+ #         owner: vagrant
+ #         group: vagrant
+ #         mode: '0644'
+ #         force: no 
+
+# USE  ecommerce-website_ogs  ;
+# SHOW FULL TABLES ;
+
+  - name: "copy files and build them"
+    include_tasks: "container_load.yml"
+    loop: "{{ files.files }}"
+
+  - name: "HealtCheck"
+    docker_host_info:
+      containers: yes
+    register: result
+    until: result.host_info.ContainersRunning == files.files | length
+    retries: 5
+    delay: 10
+    tags: healtcheck
+

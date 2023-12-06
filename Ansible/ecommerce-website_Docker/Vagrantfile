@@ -1,0 +1,64 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+Vagrant.configure("2") do |config|
+ config.vm.define "ansiblecontrol" do |ansiblecontrol|
+    ansiblecontrol.vm.box = "ubuntu/focal64"
+    ansiblecontrol.vm.network "private_network", ip: "192.168.55.100"
+    ansiblecontrol.vm.synced_folder "./ansible","/home/vagrant/ansible"
+    ansiblecontrol.vm.hostname =  "ansiblecontrol"
+    ansiblecontrol.vm.provider "virtualbox" do |vb|
+      vb.memory = "1024"
+    end
+    config.vm.provision "file", source: 'sshkey/ssh_key', destination: "/home/vagrant/.ssh/"
+    config.vm.provision "file", source: 'sshkey/ssh_key.pub', destination: "/home/vagrant/.ssh/"
+    ansiblecontrol.vm.provision "shell", inline: <<-SHELL
+      sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
+      service ssh restart
+      sudo apt install python3-pip -y
+      sudo add-apt-repository --yes --update ppa:ansible/ansible
+      sudo apt update && apt --assume-yes install ansible
+      chmod 600 /home/vagrant/.ssh/ssh_key
+      cat /home/vagrant/.ssh/ssh_key.pub >> /home/vagrant/.ssh/authorized_keys
+      ansible-galaxy install -r /home/vagrant/ansible/requirements.yml
+      SHELL
+  end
+
+  config.vm.define "docker_builder" do |docker_builder|
+    docker_builder.vm.box = "bento/centos-7.5"
+    docker_builder.vm.network "private_network", ip: "192.168.55.101"
+    docker_builder.vm.synced_folder "./ansible/dockerfiles/","/root/files"
+    docker_builder.vm.hostname =  "dockerbuilder"
+    docker_builder.vm.provider "virtualbox" do |vb|
+      vb.memory = "1024"
+    end
+    config.vm.provision "file", source: 'sshkey/ssh_key', destination: "/home/vagrant/.ssh/"
+    config.vm.provision "file", source: 'sshkey/ssh_key.pub', destination: "/home/vagrant/.ssh/"
+    docker_builder.vm.provision "shell" , inline: <<-SHELL
+      sed -i -e '$aPermitRootLogin yes' /etc/ssh/sshd_config
+      sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
+      service sshd restart
+      chmod 600 /home/vagrant/.ssh/ssh_key
+      cat /home/vagrant/.ssh/ssh_key.pub >> /home/vagrant/.ssh/authorized_keys
+      SHELL
+  end
+
+  config.vm.define "docker_runner" do |docker_runner|
+    docker_runner.vm.box = "bento/centos-7.5"
+    docker_runner.vm.network "private_network", ip: "192.168.55.102"
+    docker_runner.vm.network "forwarded_port", guest: 80, host: 8088
+    docker_runner.vm.synced_folder "./ansible/dockerfiles//","/root/files"
+    docker_runner.vm.hostname =  "dockerrunner"
+    docker_runner.vm.provider "virtualbox" do |vb|
+      vb.memory = "3024"
+    end
+    config.vm.provision "file", source: 'sshkey/ssh_key', destination: "/home/vagrant/.ssh/"
+    config.vm.provision "file", source: 'sshkey/ssh_key.pub', destination: "/home/vagrant/.ssh/"
+    docker_runner.vm.provision "shell" , inline: <<-SHELL
+      sed -i -e '$aPermitRootLogin yes' /etc/ssh/sshd_config
+      sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
+      service sshd restart
+      chmod 600 /home/vagrant/.ssh/ssh_key
+      cat /home/vagrant/.ssh/ssh_key.pub >> /home/vagrant/.ssh/authorized_keys
+      SHELL
+  end
+end

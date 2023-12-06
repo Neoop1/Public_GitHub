@@ -1,0 +1,12 @@
+
+[ansible_srv]
+ansiblecontrol ansible_host=192.168.56.100 ansible_private_key_file=/home/vagrant/.ssh/ssh_key
+
+
+[webserver_srv]
+webserver ansible_host=192.168.56.101 ansible_private_key_file=/home/vagrant/.ssh/ssh_key
+
+
+
+
+

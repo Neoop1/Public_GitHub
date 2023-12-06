@@ -1,0 +1,34 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+servers = [
+  { :hostname => "node01", :ip => "192.168.7.10", :memory => "2048", :cpuz => 2 },
+  { :hostname => "node02", :ip => "192.168.7.20", :memory => "2048", :cpuz => 2 },
+  { :hostname => "node03", :ip => "192.168.7.30", :memory => "2048", :cpuz => 2 },
+]
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "teak/bullseye_x86_64"
+  servers.each do |conf|
+    config.vm.define conf[:hostname] do |node|
+        node.vm.hostname = conf[:hostname]
+        node.vm.network "public_network", bridge: "bridge0" , ip: conf[:ip]
+        node.vm.provider "vmware_desktop" do |vb|
+    end
+  end
+  config.vm.provision "file", source: 'sshkey/ssh_key', destination: "/home/vagrant/.ssh/"
+  config.vm.provision "file", source: 'sshkey/ssh_key.pub', destination: "/home/vagrant/.ssh/"
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+  config.vm.provision "shell" , inline: <<-SHELL
+  sed -i -e '$aPermitRootLogin yes' /etc/ssh/sshd_config
+  sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
+  service ssh restart
+  chmod 600 /home/vagrant/.ssh/ssh_key.pub
+  cat /home/vagrant/.ssh/ssh_key.pub >> /home/vagrant/.ssh/authorized_keys
+  SHELL
+  config.vm.provider :vmware_desktop do |v|
+    v.vmx["memsize"] = conf[:memory]
+    v.vmx["numvcpus"] = conf[:cpuz]
+    v.vmx["cpuid.coresPerSocket"] = "1"
+  end
+ end
+end

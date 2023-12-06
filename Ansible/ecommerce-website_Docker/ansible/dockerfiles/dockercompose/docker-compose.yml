@@ -1,0 +1,41 @@
+version: '3'
+services:
+  frontend:
+    container_name: Webserver
+    image: web_container:v5.0
+    volumes:
+      - /root/files/phpsite/ecommerce-website.com/:/var/www/html/
+
+    restart: always
+    ports:
+    - '8080:80'
+
+    depends_on:
+      - mysql
+    environment:
+       MYSQL_HOST: "mysql"
+       MYSQL_PORT: '3306'
+       MYSQL_USER: root
+       MYSQL_PASSWORD: password
+       MYSQL_DB: ecommerce-website_ogs
+
+  mysql:
+    container_name: mysql_server
+    image: db_container:v5.0
+    volumes:
+      - /root/files/dbfile/ecommerce-website.com.sql:/docker-entrypoint-initdb.d/ecommerce-website.com.sql 
+    restart: always
+    environment:
+       MYSQL_ROOT_PASSWORD: password
+       MYSQL_DATABASE: ecommerce-website_ogs
+       MYSQL_USER: root
+       MYSQL_PASSWORD: password
+       MYSQL_DB: ecommerce-website_ogs
+  
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8090:8080
+
+

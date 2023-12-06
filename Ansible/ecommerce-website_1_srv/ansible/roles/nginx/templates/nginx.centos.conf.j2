@@ -1,0 +1,25 @@
+server {
+       listen {{php_nginx_port}};
+       root /usr/share/nginx/php_test;
+       index index.php index.html index.htm;
+       server_name php-test.com;
+
+       location / {
+               try_files $uri $uri/ =404;
+       }
+
+        location ~ \.php$ {
+               try_files $uri  =404;
+               fastcgi_pass unix:/var/php-fpm/php-fpm.sock;
+               fastcgi_index index.php;
+               fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+               include fastcgi_params;
+        }
+
+        location ~ /\.ht {
+               deny all;
+        }
+
+
+}
+

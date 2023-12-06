@@ -1,0 +1,1 @@
+{"virtualbox":{"/home/vagrant/ansible":{"guestpath":"/home/vagrant/ansible","hostpath":"/home/user1/Desktop/Tools/ansible-automation/ecommerce-website_1srv/ansible","disabled":false,"__vagrantfile":true},"/vagrant":{"guestpath":"/vagrant","hostpath":"/home/user1/Desktop/Tools/ansible-automation/ecommerce-website_1srv","disabled":false,"__vagrantfile":true}}}

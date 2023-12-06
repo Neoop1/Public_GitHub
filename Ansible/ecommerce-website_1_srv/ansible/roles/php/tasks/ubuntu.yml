@@ -1,0 +1,79 @@
+  
+  
+  
+  
+  
+  - name: 'cheack php'
+    ansible.builtin.fail:
+       msg:  "the php {{ php_version }} does not exist "
+    when: php_version > 8.0
+
+  - name: 'Install tools for php repository'
+    ansible.builtin.apt:
+     name:  
+      - gnupg
+      - apt-transport-https 
+      - lsb-release 
+      - ca-certificates 
+      - software-properties-common
+     update_cache: yes
+     state: latest
+
+  
+
+  - name: Add an Apt signing key, will not download if present
+    ansible.builtin.apt_key:
+     url: https://packages.sury.org/php/apt.gpg
+     state: present
+
+
+  - name: 'add repo for php'
+    ansible.builtin.apt_repository:
+    # repo:  'ppa:ondrej/php'
+     repo: deb https://packages.sury.org/php/ buster main
+    # validate_certs: false
+     update_cache: true
+     state: present
+  
+  - name: 'Install PhP'
+    ansible.builtin.apt:
+     name:  "{{ item}}"
+     update_cache: yes
+     state: latest
+    with_items:
+    - "php{{php_version}}-fpm"
+    - "php{{php_version}}-mysql"
+
+  - name: cheack if we are havinh nginx dir 
+    ansible.builtin.stat:
+     path: /etc/nginx/sites-available/
+    register: php_site_available_stats  
+
+
+  - name: 'copy php file to /var/www'
+    ansible.builtin.copy:
+     src: "files/php/ecommerce-website.com"
+     dest: "/var/www/" 
+     owner: "vagrant"
+     group: "vagrant"
+     mode: "0644"
+    when: php_site_available_stats.stat.exists
+
+    
+  - name: 'copy ngnix config'
+    ansible.builtin.template:
+     src: "templates/nginx.conf.j2"
+     dest: "/etc/nginx/sites-available/ecommerce-website.com.conf"
+     owner: "vagrant"
+     group: "vagrant"
+     mode: "0644"
+    when: php_site_available_stats.stat.exists
+
+
+
+  - name: copy php test conf
+    ansible.builtin.file:
+     src: "/etc/nginx/sites-available/ecommerce-website.com.conf"
+     dest: "/etc/nginx/sites-enabled/ecommerce-website.com"
+     state: "link"
+    when: php_site_available_stats.stat.exists

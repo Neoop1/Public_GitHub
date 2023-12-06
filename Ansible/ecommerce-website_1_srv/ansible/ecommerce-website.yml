@@ -1,0 +1,21 @@
+---
+- name: "installing lemp server"
+  hosts: "webserver_srv"
+  become: true
+  #gather_facts: no
+  vars:
+   test_var: test
+   php_version: 7.3
+  roles:
+  - nginx
+  - mysql
+  - php
+
+  tasks:
+  - name: "reload nginx"
+    ansible.builtin.service:
+     name: "nginx"
+     state: "reloaded"
+
+
+  

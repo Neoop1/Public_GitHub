@@ -1,0 +1,44 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+Vagrant.configure("2") do |config|
+  config.vm.define "ansiblecontrol" do |ansiblecontrol|
+    ansiblecontrol.vm.box = "ubuntu/focal64"
+    ansiblecontrol.vm.network "private_network", ip: "192.168.56.100"
+    ansiblecontrol.vm.synced_folder "./ansible","/home/vagrant/ansible"
+    ansiblecontrol.vm.hostname =  "ansiblecontrol"
+    ansiblecontrol.vm.provider "virtualbox" do |vb|
+      vb.memory = "1024"
+    end
+    config.vm.provision "file", source: 'sshkey/ssh_key', destination: "/home/vagrant/.ssh/"
+    config.vm.provision "file", source: 'sshkey/ssh_key.pub', destination: "/home/vagrant/.ssh/"
+    ansiblecontrol.vm.provision "shell", inline: <<-SHELL
+      sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
+      service ssh restart
+      sudo apt install python3-pip -y
+      sudo add-apt-repository --yes --update ppa:ansible/ansible
+      sudo apt update && apt --assume-yes install ansible
+      chmod 600 /home/vagrant/.ssh/ssh_key
+      cat /home/vagrant/.ssh/ssh_key.pub >> /home/vagrant/.ssh/authorized_keys
+      ansible-galaxy install -r /home/vagrant/ansible/requirements.yml
+      SHELL
+  end
+
+  config.vm.define "webserver" do |webserver|
+    webserver.vm.box = "debian/buster64"
+    webserver.vm.network "private_network", ip: "192.168.56.101"
+   #webserver.vm.network "forwarded_port", guest: 80, host: 8080
+    webserver.vm.hostname =  "webserver"
+    webserver.vm.provider "virtualbox" do |vb|
+      vb.memory = "1024"
+    end
+    config.vm.provision "file", source: 'sshkey/ssh_key', destination: "/home/vagrant/.ssh/"
+    config.vm.provision "file", source: 'sshkey/ssh_key.pub', destination: "/home/vagrant/.ssh/"
+    webserver.vm.provision "shell" , inline: <<-SHELL
+      sed -i -e '$aPermitRootLogin yes' /etc/ssh/sshd_config
+      sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
+      service ssh restart
+      chmod 600 /home/vagrant/.ssh/ssh_key.pub
+      cat /home/vagrant/.ssh/ssh_key.pub >> /home/vagrant/.ssh/authorized_keys
+      SHELL
+  end
+end

@@ -1,0 +1,96 @@
+ 
+ 
+ # - name: Add Apt signing key Mysql
+ #   ansible.builtin.apt_key:
+ #    data: "files/sql_config/sqlkey.asc"
+ #    state: present
+ #
+
+  - name: Add an apt key by id from a keyserver
+    ansible.builtin.apt_key:
+       keyserver: pgp.mit.edu
+       id: 3A79BD29
+
+  - name: "raw update apt"
+    raw: apt -y update 
+    args:
+     executable: /bin/bash
+
+  - name: add sql repository to mysql.list
+    shell: "echo 'deb http://repo.mysql.com/apt/debian/ buster mysql-8.0' > /etc/apt/sources.list.d/mysql.list"
+ 
+  - name: 'Install pymysql via apt'
+    ansible.builtin.apt:
+         name:
+          - python3-pymysql
+          - python-mysqldb
+         state: latest  
+         update-cache: true
+    
+ 
+  - name: 'Install mysql'
+    ansible.builtin.apt:
+      name:
+       - mysql-server
+      state: latest
+ 
+ 
+  - name: 'copy sql_database to Web Server'
+    ansible.builtin.copy:
+      src: "files/sql_database"
+      dest: "/var/lib/mysql/" 
+      owner: "vagrant"
+      group: "vagrant"
+      mode: "0644"
+
+ 
+  - name: "set up root user"
+    community.mysql.mysql_user: 
+      name: "root"
+      password: "password"
+      login_user: "root"
+      login_password: "password"
+      check_implicit_admin: true
+      login_unix_socket: "/var/run/mysqld/mysqld.sock"
+ 
+  - name: "set up ecommerce-website_ogs user"
+    community.mysql.mysql_user: 
+      name: "ecommerce-website_ogs"
+      password: "password"
+      login_user: "root"
+      login_password: "password"
+      login_unix_socket: "/var/run/mysqld/mysqld.sock"
+ 
+  
+  - name: Make sure there is neither a database with name 'ecommerce-website_ogs'
+    community.mysql.mysql_db:
+     name:
+       - ecommerce-website_ogs
+     login_user: root
+     login_password: "password"
+     state: absent
+ 
+  - name: Import SQL Dadabase
+    community.mysql.mysql_db:
+       state: import
+       login_user: root
+       login_password: "password"
+       name: ecommerce-website_ogs
+       target: "/var/lib/mysql/sql_database/ecommerce-website.com.sql"
+       #force: true
+
+  
+
+  - name: "remove test database"
+    community.mysql.mysql_db: 
+     name: ""
+     state: "absent"
+     login_user: "root"
+     login_password: "password"
+     
+  - name: "remove a anon users"
+    community.mysql.mysql_user: 
+     name: ""
+     state: "absent"
+     login_user: "root"
+     login_password: "password"
